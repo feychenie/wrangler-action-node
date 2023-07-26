@@ -4,6 +4,7 @@
 	"description": "Easy-to-use GitHub Action to use [Wrangler](https://developers.cloudflare.com/workers/cli-wrangler/). Makes deploying Workers, Pages or modifying R2 easy to do.",
 	"type": "module",
 	"scripts": {
+		"build": "npx ncc build src/index.ts --v8-cache --minify --target es2023 --out compiled",
 		"build.types": "tsc --incremental",
 		"build.types:watch": "npm run build.types -- --watch"
 	},
@@ -23,6 +24,7 @@
 	"devDependencies": {
 		"@demosjarco/prettier-config": "^1.0.0",
 		"@types/node": "^16.18.38",
+		"@vercel/ncc": "^0.36.1",
 		"prettier": "^3.0.0",
 		"typescript": "^5.1.6"
 	}

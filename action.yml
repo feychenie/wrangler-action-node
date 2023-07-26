@@ -43,3 +43,6 @@ inputs:
   command:
     description: 'The Wrangler command you wish to run. For example: "publish" - this will publish your Worker'
     required: false
+  packageManager:
+    description: 'The package manager you wish to use to install Wrangler (default: npm). Supported values: npm, yarn, pnpm, bun'
+    required: false

@@ -3,6 +3,9 @@ import * as core from '@actions/core';
 import path from 'node:path';
 import { exec, spawn } from 'node:child_process';
 
+const packageManagers = ['npm', 'pnpm', 'yarn', 'bun'] as const;
+type PackageManager = (typeof packageManagers)[number];
+
 class Wrangler {
 	private API_CREDENTIALS: string = '';
 	private workingDirectory: string = this.setupWorkingDirectory(core.getInput('workingDirectory'));
@@ -16,7 +19,7 @@ class Wrangler {
 	private CLOUDFLARE_ACCOUNT_ID?: string;
 
 	public async main() {
-		await this.installWrangler(core.getInput('wranglerVersion'));
+		await this.installWrangler(core.getInput('wranglerVersion'), core.getInput('packageManager'));
 		this.authenticationSetup(core.getInput('apiToken'), core.getInput('apiKey'), core.getInput('email'), core.getInput('accountId'));
 		await this.execute_commands(core.getMultilineInput('preCommands'));
 		await this.putSecrets(core.getMultilineInput('secrets'), core.getInput('environment'));
@@ -37,7 +40,11 @@ class Wrangler {
 		return normalizedPath;
 	}
 
-	private installWrangler(INPUT_WRANGLERVERSION: string): Promise<void> {
+	//   # npm i @types/node -D
+	// # yarn add @types/node -D
+	// # pnpm add -D @types/node
+	// # bun add -d @types/node
+	private installWrangler(INPUT_WRANGLERVERSION: string, INPUT_PACKAGE_MANAGER: string = 'npm'): Promise<void> {
 		let packageName = 'wrangler';
 		let versionToUse = '';
 
@@ -54,7 +61,22 @@ class Wrangler {
 			this.WRANGLER_VERSION = Number(INPUT_WRANGLERVERSION[0]);
 		}
 
-		const command = `npm install --save-dev ${packageName}${versionToUse}`;
+		const command = (() => {
+			const pm = INPUT_PACKAGE_MANAGER as PackageManager;
+			switch (pm) {
+				case 'npm':
+					return `npm i ${packageName}${versionToUse} -D`;
+				case 'yarn':
+					return `yarn add ${packageName}${versionToUse} -D`;
+				case 'pnpm':
+					return `pnpm add -D ${packageName}${versionToUse}`;
+				case 'bun':
+					return `bun add -d ${packageName}${versionToUse}`;
+				default:
+					const unsupportedPM: never = pm; // TS error if
+					throw `Unsupported package manager ${unsupportedPM}, pick one of ${packageManagers.join(', ')}.`;
+			}
+		})();
 		console.info(command);
 		return new Promise((resolve, reject) => {
 			exec(command, { cwd: this.workingDirectory, env: process.env }, (error, stdout, stderr) => {
